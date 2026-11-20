@@ -325,6 +325,25 @@
         .rail-tab .scroll-x::-webkit-scrollbar-track { background: #E3D2AE; }
         .rail-tab .scroll-x::-webkit-scrollbar-thumb { background: #A98D63; border-radius: 3px; }
 
+        /* ===== 第五分頁：製糖的過程 ===== */
+        .process-tab { background: #EFE3C8; }
+        .process-tab section[id] { scroll-margin-top: 172px; }
+        @media (min-width: 768px) {
+            .process-tab section[id] { scroll-margin-top: 124px; }
+        }
+        /* 轉乘列車的軌道：兩條鋼軌＋枕木 */
+        .process-tab .track-band {
+            height: 26px;
+            background-image:
+                linear-gradient(#1A1108, #1A1108),
+                linear-gradient(#1A1108, #1A1108),
+                repeating-linear-gradient(90deg, #1A1108 0 4px, transparent 4px 30px);
+            background-repeat: no-repeat, no-repeat, repeat-x;
+            background-size: 100% 2px, 100% 2px, 100% 26px;
+            background-position: 0 4px, 0 20px, 0 0;
+            opacity: .9;
+        }
+
         /* 互動路網圖 */
         #rail-map { display: block; width: 100%; min-width: 480px; height: auto; }
         #rail-map .spine { stroke: #1A1108; stroke-width: 7; }
@@ -1214,6 +1233,450 @@ const RAIL_NODES = [
             const template = document.getElementById('rail-article-template');
             return template ? template.innerHTML : '';
         })();
+
+        // ===== 第五分頁：製糖的過程（改寫自臺灣網路科教館《糖的科學》） =====
+        const ProcSection = ({ id, num, title, subtitle, accent, children }) => (
+            <section id={id} className="px-4 md:px-6 py-9 md:py-14 border-b-2 border-[#1A1108]/15">
+                <div className="max-w-6xl mx-auto">
+                    <div className="flex items-start gap-3 md:gap-5">
+                        <span className="shrink-0 font-display text-3xl md:text-5xl font-black leading-none tabular-nums" style={{ color: accent }}>{num}</span>
+                        <div className="min-w-0">
+                            <h2 className="font-display text-xl md:text-3xl lg:text-4xl font-black text-[#1A1108] leading-tight">{title}</h2>
+                            {subtitle && <p className="mt-1.5 text-xs md:text-sm text-[#6B5330] leading-relaxed">{subtitle}</p>}
+                        </div>
+                    </div>
+                    <div className="mt-6 md:mt-8">{children}</div>
+                </div>
+            </section>
+        );
+
+        const ProcCard = ({ title, tone, children, className = '' }) => (
+            <div className={`bg-[#FBF4E1] border-2 border-[#1A1108] rounded-sm shadow-[6px_6px_0_#1A1108] p-4 md:p-5 ${className}`}>
+                {title && (
+                    <h3 className="font-display text-base md:text-lg font-black mb-3 flex items-center gap-2" style={{ color: tone }}>
+                        <span className="inline-block w-2 h-2 shrink-0" style={{ background: tone }} />
+                        {title}
+                    </h3>
+                )}
+                {children}
+            </div>
+        );
+
+        const ProcFlow = ({ steps, tone, title, note }) => (
+            <div className="bg-[#FBF4E1] border-2 border-[#1A1108] rounded-sm shadow-[6px_6px_0_#1A1108] p-4 md:p-5">
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <h3 className="font-display text-lg md:text-xl font-black" style={{ color: tone }}>{title}</h3>
+                    <span className="text-[10px] font-black tracking-[0.16em] text-[#6B5330]">{steps.length} 個步驟</span>
+                </div>
+                <ol className="mt-4 space-y-2">
+                    {steps.map((step, i) => (
+                        <li key={step} className="flex items-center gap-2.5">
+                            <span className="shrink-0 w-7 h-7 grid place-items-center border-2 border-[#1A1108] text-[11px] font-black tabular-nums" style={{ background: i === 0 ? tone : '#F0B429', color: i === 0 ? '#FBF4E1' : '#1A1108' }}>
+                                {String(i + 1).padStart(2, '0')}
+                            </span>
+                            <span className="text-[13px] md:text-sm font-bold text-[#1A1108] leading-snug">{step}</span>
+                            {i < steps.length - 1 && (
+                                <svg className="ml-auto w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#1A1108" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M5 12h13M13 6l6 6-6 6" />
+                                </svg>
+                            )}
+                        </li>
+                    ))}
+                </ol>
+                {note && <p className="mt-4 pt-3 border-t-2 border-[#1A1108]/15 text-[11px] md:text-xs leading-relaxed text-[#6B5330]">{note}</p>}
+            </div>
+        );
+
+        const ProcessTab = ({ onOpenTab, factories = [] }) => {
+            const procNav = [
+                ['process-intro', '糖的科學'],
+                ['process-video', '製糖影片'],
+                ['process-history', '糖業沿革'],
+                ['process-material', '甘蔗與甜菜'],
+                ['process-cane', '甘蔗與種植'],
+                ['process-flow', '製糖流程'],
+                ['process-chem', '清淨與結晶'],
+                ['process-sugar', '糖的種類'],
+                ['process-cycle', '蔗渣與生質能'],
+                ['process-transfer', '轉乘現況']
+            ];
+            // 「糖廠現況」四座都是仍運作的廠：兩座現役壓榨、一座現役精煉、一座特殊糖品
+            const runningFactories = ['huwei', 'shanhua', 'xiaogang', 'dalin']
+                .map((id) => factories.find((f) => f.id === id))
+                .filter(Boolean);
+            const boardTrain = () => {
+                if (onOpenTab) onOpenTab('data', runningFactories[0]?.id);
+            };
+            const procJump = (event, id) => {
+                event.preventDefault();
+                const target = document.getElementById(id);
+                if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+            };
+
+            const machineFlow = ['甘蔗採收', '切段', '壓搾', '蔗汁收集', '清淨', '脫色・濃縮', '結晶', '分蜜', '多次再結晶與分蜜', '收集與乾燥', '包裝'];
+            const folkFlow = ['甘蔗採收', '壓搾', '蔗汁收集', '過濾殘渣', '煮糖', '糖膏形成', '攪拌冷卻（炒糖）', '添加調味品', '結塊', '收集與乾燥', '包裝'];
+
+            const bullet = (text) => (
+                <li className="flex gap-2">
+                    <span className="mt-0.5 shrink-0 font-black text-[#B8420A]">▪</span>
+                    <span>{text}</span>
+                </li>
+            );
+
+            return (
+                <div className="process-tab">
+                    <div className="border-b-2 border-[#1A1108] bg-[#F7ECD4]">
+                        <div className="max-w-6xl mx-auto px-4 md:px-6 py-2.5 flex items-center gap-1.5 overflow-x-auto scrollbar-thin text-[11px] md:text-xs font-black whitespace-nowrap">
+                            <span className="hidden sm:inline text-[#B8420A] tracking-[0.2em] mr-1 shrink-0">SECTION</span>
+                            {procNav.map(([id, label], i) => (
+                                <a key={id} href={'#' + id} onClick={(e) => procJump(e, id)} className="px-2.5 py-1.5 rounded-sm border-2 border-[#1A1108] bg-[#FBF4E1] hover:bg-[#F0B429] transition-colors shrink-0">
+                                    <span className="text-[#B8420A] mr-1 tabular-nums">{String(i + 1).padStart(2, '0')}</span>{label}
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+
+                    <ProcSection id="process-intro" num="01" title="從一根甘蔗，到一匙糖" accent="#B8420A" subtitle="「糖」是現代民生重要的調味品之一；白糖、紅糖、果糖及糖葫蘆，都是這門「糖的科學」的產物。">
+                        <div className="grid gap-6 md:grid-cols-2 items-center">
+                            <div>
+                                <p className="text-[10px] font-black tracking-[0.28em] text-[#B8420A]">糖的科學 · SUGAR SCIENCE</p>
+                                <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-black text-[#1A1108] leading-tight mt-2">甜味的背後，<br />是一場植物與化學的合作</h1>
+                                <p className="mt-4 text-xs md:text-sm leading-relaxed text-[#3B2B17]">由台灣的文史資料可以遠溯及元朝時代「釀蔗漿為酒」的記載；十七世紀初荷蘭人統治台灣時獎勵種蔗製糖，日據時期開始設置製糖株式會社並附設酒精製造廠。1970 年代台灣製糖業達到最巔峰，為國內賺取大量外匯；1980 年代農業社會邁向工業社會，製糖成本不敷，遂轉而仰賴進口蔗糖。</p>
+                                <div className="mt-3 border-t-2 border-dashed border-[#1A1108]/25 pt-2.5">
+                                    <p className="text-[11px] md:text-xs text-[#6B5330] leading-relaxed">文／張毓禎（嘉義市北興國小）　林大陣（嘉義市大同國小）</p>
+                                    <p className="mt-1 text-[10px] md:text-[11px] text-[#6B5330] leading-relaxed">
+                                        改寫自<a
+                                            href={'https://www.ntsec.edu.tw/liveSupply/detail.aspx?a=6829&cat=6838&p=1&lid=8248&print=1'}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="mx-0.5 font-black text-[#8E2B1B] underline decoration-2 underline-offset-2 hover:text-[#E86A17]"
+                                        >臺灣網路科教館《糖的科學》</a>；示意插圖為手繪重製，未引用原文照片。
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="bg-[#FBF4E1] border-2 border-[#1A1108] rounded-sm shadow-[8px_8px_0_#1A1108] p-3 md:p-4">
+                                <svg viewBox="0 0 720 210" className="w-full h-auto" role="img" aria-label="甘蔗經壓搾成為砂糖的手繪示意圖">
+                                    <g fill="#F7ECD4" stroke="#1A1108" strokeWidth="3">
+                                        <rect x="16" y="28" width="180" height="150" rx="8" />
+                                        <rect x="270" y="28" width="170" height="150" rx="8" />
+                                        <rect x="540" y="28" width="164" height="150" rx="8" />
+                                    </g>
+                                    <g fill="none" stroke="#0B5D5D" strokeWidth="10" strokeLinecap="round">
+                                        <path d="M56 140 L74 52" /><path d="M92 144 L112 44" /><path d="M128 140 L146 56" />
+                                    </g>
+                                    <g fill="none" stroke="#0B5D5D" strokeWidth="4" strokeLinecap="round">
+                                        <path d="M74 70 L48 52" /><path d="M74 84 L102 62" /><path d="M112 62 L88 42" /><path d="M112 76 L138 50" /><path d="M146 74 L124 52" /><path d="M146 88 L170 66" />
+                                    </g>
+                                    <path d="M40 146 H168" stroke="#1A1108" strokeWidth="2.5" strokeLinecap="round" />
+                                    <g fill="#F0B429" stroke="#1A1108" strokeWidth="3">
+                                        <circle cx="318" cy="84" r="23" /><circle cx="386" cy="84" r="23" />
+                                    </g>
+                                    <g fill="#1A1108"><circle cx="318" cy="84" r="5" /><circle cx="386" cy="84" r="5" /></g>
+                                    <g fill="none" stroke="#1A1108" strokeWidth="3" strokeLinecap="round"><path d="M292 130 H416" /><path d="M318 130 V142" /><path d="M386 130 V142" /></g>
+                                    <path d="M352 112 V132" stroke="#B8420A" strokeWidth="4" strokeLinecap="round" />
+                                    <circle cx="352" cy="139" r="5" fill="#B8420A" />
+                                    <path d="M352 34 V50 M345 43 L352 52 L359 43" fill="none" stroke="#1A1108" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                    <g fill="#FBF4E1" stroke="#1A1108" strokeWidth="3">
+                                        <rect x="582" y="80" width="26" height="26" rx="2" transform="rotate(-8 595 93)" />
+                                        <rect x="610" y="68" width="26" height="26" rx="2" transform="rotate(6 623 81)" />
+                                        <rect x="636" y="84" width="26" height="26" rx="2" transform="rotate(-4 649 97)" />
+                                    </g>
+                                    <path d="M562 118 Q622 152 682 118 Z" fill="#F0B429" stroke="#1A1108" strokeWidth="3" strokeLinejoin="round" />
+                                    <path d="M568 148 H676" stroke="#1A1108" strokeWidth="3" strokeLinecap="round" />
+                                    <g fill="none" stroke="#E86A17" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M202 104 C226 90 244 118 264 104" /><path d="M254 94 L266 104 L252 114" />
+                                        <path d="M446 104 C470 90 490 118 534 104" /><path d="M522 94 L536 104 L520 114" />
+                                    </g>
+                                    <g fontFamily="'Noto Serif TC', serif" fontWeight="900" fontSize="17" fill="#1A1108" textAnchor="middle">
+                                        <text x="106" y="202">甘蔗</text><text x="355" y="202">壓搾</text><text x="622" y="202">砂糖</text>
+                                    </g>
+                                </svg>
+                            </div>
+                        </div>
+                    </ProcSection>
+
+                    <ProcSection id="process-video" num="02" title="甜蜜糖廠童趣版" accent="#B8420A" subtitle="搭配前面的製糖流程一起看，讓甘蔗變成糖的每一步更清楚。影片來源：YouTube／YU。">
+                        <div className="mx-auto max-w-2xl bg-[#FBF4E1] border-2 border-[#1A1108] rounded-sm shadow-[6px_6px_0_#1A1108] p-2 sm:p-3 md:p-4">
+                            <div className="relative w-full overflow-hidden bg-[#1A1108]" style={{ aspectRatio: '16 / 9' }}>
+                                <iframe
+                                    src="https://www.youtube.com/embed/mqWh7rzTNec?rel=0&hd=1&vq=hd1080&playsinline=1"
+                                    title="甜蜜糖廠童趣版"
+                                    width="1280"
+                                    height="720"
+                                    className="absolute inset-0 h-full w-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    referrerPolicy="strict-origin-when-cross-origin"
+                                    allowFullScreen
+                                />
+                            </div>
+                            <p className="mt-3 text-[10px] md:text-[11px] leading-relaxed text-[#6B5330]">
+                                影片：<span className="font-black text-[#1A1108]">甜蜜糖廠童趣版</span>／YU（YouTube）。若無法播放，
+                                <a
+                                    href="https://youtu.be/mqWh7rzTNec"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-black text-[#8E2B1B] underline decoration-2 underline-offset-2 hover:text-[#E86A17]"
+                                >
+                                    點此前往 YouTube 觀看
+                                </a>
+                                。
+                            </p>
+                        </div>
+                    </ProcSection>
+
+                    <ProcSection id="process-history" num="03" title="台灣糖業的五個轉折" accent="#8E2B1B" subtitle="從元朝的「釀蔗漿為酒」，到賺取外匯的產業，再到轉型進口。">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                            {[
+                                ['元朝', '釀蔗漿為酒', '台灣文史資料中可遠溯的甘蔗記載。'],
+                                ['17 世紀初', '荷蘭獎勵種蔗', '荷蘭人統治台灣時，開始獎勵種蔗製糖。'],
+                                ['日治時期', '製糖株式會社', '開始設置製糖會社，並附設酒精製造廠。'],
+                                ['1970 年代', '產業最巔峰', '台灣製糖業達到最巔峰，為國內賺取大量外匯。'],
+                                ['1980 年代', '轉型仰賴進口', '農業社會邁向工業社會，製糖不敷成本。']
+                            ].map(([era, heading, desc]) => (
+                                <ProcCard key={era} title={era} tone="#8E2B1B">
+                                    <p className="font-display text-sm font-black text-[#1A1108]">{heading}</p>
+                                    <p className="mt-1.5 text-[11px] leading-relaxed text-[#6B5330]">{desc}</p>
+                                </ProcCard>
+                            ))}
+                        </div>
+                    </ProcSection>
+
+                    <ProcSection id="process-material" num="04" title="甘蔗與甜菜：糖從哪裡來" accent="#0B5D5D" subtitle="蔗糖並不是甘蔗的專利；只要是會進行光合作用的陸生植物，都能產生蔗糖。">
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <ProcCard title="甘蔗 · 熱帶與亞熱帶" tone="#0B5D5D">
+                                <p className="text-xs md:text-sm leading-relaxed text-[#3B2B17]">世界各地因緯度與氣候差異，在熱帶和亞熱帶地區以甘蔗為製造蔗糖的主要原料。甘蔗與甜菜蘊藏的蔗糖量較一般植物高，且容易製作取得，因此被選為製糖原料。</p>
+                            </ProcCard>
+                            <ProcCard title="甜菜（糖蘿蔔）· 溫帶" tone="#B8420A">
+                                <p className="text-xs md:text-sm leading-relaxed text-[#3B2B17]">溫帶地區則以耐乾燥和寒冷的甜菜（又稱糖蘿蔔）為材料。甘蔗和甜菜並不是唯一會產生蔗糖的植物——關鍵在於光合作用。</p>
+                            </ProcCard>
+                        </div>
+                        <div className="mt-4 grid gap-4 md:grid-cols-2 items-center">
+                            <ProcCard title="從光合作用到蔗糖" tone="#1A1108">
+                                <p className="text-xs md:text-sm leading-relaxed text-[#3B2B17]">葉片吸收太陽光與二氧化碳，利用根部吸收的水分，經過一連串反應產生葡萄糖；二份葡萄糖在酵素的協助下合成一份蔗糖，有些植物再把蔗糖合成澱粉。</p>
+                                <p className="mt-3 inline-block border-2 border-[#1A1108] bg-[#F2E5C8] px-3 py-1.5 font-display text-sm md:text-base font-black text-[#1A1108]">葡萄糖 ＋ 葡萄糖 <span className="text-[#B8420A]">─酵素→</span> 蔗糖</p>
+                            </ProcCard>
+                            <div className="bg-[#FBF4E1] border-2 border-[#1A1108] rounded-sm shadow-[6px_6px_0_#1A1108] p-3 md:p-4">
+                                <svg viewBox="0 0 360 150" className="w-full h-auto" role="img" aria-label="日光、水與葉片進行光合作用的示意圖">
+                                    <g stroke="#1A1108" strokeWidth="2.5" strokeLinecap="round">
+                                        <path d="M44 8 V18 M44 60 V70 M10 39 H20 M68 39 H78 M20 15 L27 22 M61 56 L68 63 M68 15 L61 22 M27 56 L20 63" />
+                                    </g>
+                                    <circle cx="44" cy="39" r="21" fill="#F0B429" stroke="#1A1108" strokeWidth="3" />
+                                    <path d="M112 108 C112 54 176 34 232 52 C226 100 172 122 112 108 Z" fill="#0B5D5D" stroke="#1A1108" strokeWidth="3" strokeLinejoin="round" />
+                                    <path d="M118 106 C150 88 188 70 226 54" fill="none" stroke="#FBF4E1" strokeWidth="2.5" strokeLinecap="round" />
+                                    <path d="M40 120 C40 108 52 96 52 96 C52 96 64 108 64 120 A12 12 0 0 1 40 120 Z" fill="#FBF4E1" stroke="#1A1108" strokeWidth="2.5" />
+                                    <g fill="none" stroke="#E86A17" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M244 70 H286" /><path d="M278 62 L288 70 L278 78" />
+                                    </g>
+                                    <rect x="298" y="52" width="34" height="34" rx="2" fill="#FBF4E1" stroke="#1A1108" strokeWidth="3" transform="rotate(7 315 69)" />
+                                    <g fontFamily="'Noto Serif TC', serif" fontWeight="900" fontSize="12" fill="#1A1108" textAnchor="middle">
+                                        <text x="44" y="91">日光</text><text x="52" y="144">水</text><text x="170" y="132">葉片</text><text x="316" y="107">蔗糖</text>
+                                    </g>
+                                </svg>
+                            </div>
+                        </div>
+                    </ProcSection>
+
+                    <ProcSection id="process-cane" num="05" title="甘蔗的品種與種植" accent="#A3440D" subtitle="台灣的甘蔗主要分為三大類，只有「糖用甘蔗」最適合製造蔗糖。">
+                        <div className="grid gap-3 md:grid-cols-3">
+                            <ProcCard title="巴西蔗（白甘蔗）" tone="#0B5D5D">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">供搾汁用。水分含量高、蔗糖濃度低。</p>
+                            </ProcCard>
+                            <ProcCard title="生食紅甘蔗" tone="#8E2B1B">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">供直接啃食。纖維較少、糖分與水分適中。</p>
+                            </ProcCard>
+                            <ProcCard title="糖用甘蔗" tone="#E86A17">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">蔗糖濃度高、水分含量少，最適合製造蔗糖；但纖維含量高不易咬斷，不適合直接啃食。</p>
+                            </ProcCard>
+                        </div>
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <ProcCard title="種植、育種與採收" tone="#1A1108">
+                                <ul className="space-y-1.5 text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">
+                                    {bullet('甘蔗屬禾本科單子葉草本植物，田間多以扦插種植，近土壤的莖會長出不定根。')}
+                                    {bullet('莖由節與節間及纖維化外皮組成；節有生長點可長側芽，田間種植多去除側芽以減少養分散。')}
+                                    {bullet('種植分秋植、春植與宿根三種，至少須經一年至一年半的生長期才能採收。')}
+                                    {bullet('糖用甘蔗多在十一月下旬少雨期採收：莖內水分減少、蔗糖濃度升高，可減少製糖成本。')}
+                                    {bullet('糖用甘蔗以臺蔗十號（ROC10）改良而成的臺蔗十六號（ROC16）為主要栽培種。')}
+                                    {bullet('近年以莖頂分生組織進行組織培養，分離出無病毒的健康甘蔗種苗。')}
+                                </ul>
+                            </ProcCard>
+                            <ProcCard title="蔗渣的舊日價值" tone="#1A1108">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">在塑膠製品尚未量產以前，糖用甘蔗製糖剩下的蔗渣纖維是製造隔熱蔗板和造紙的主要原料，具有多方面的經濟價值；如今這些用途多已被低成本原料取代。</p>
+                                <p className="mt-3 border-t-2 border-[#1A1108]/15 pt-3 text-[11px] md:text-xs leading-relaxed text-[#6B5330]">葉子是甘蔗植株面積佔比最高的部分；研究發現甘蔗光合作用的效率相當高，甚至比熱帶雨林的平均光合作用能力還要高，對空氣淨化貢獻良多。</p>
+                            </ProcCard>
+                        </div>
+                    </ProcSection>
+
+                    <ProcSection id="process-flow" num="06" title="兩條製糖路線" accent="#E86A17" subtitle="台糖以機械化與精密儀器進行精製；民間依賴經驗，只能做到粗製糖析出。">
+                        <div className="grid gap-5 lg:grid-cols-2">
+                            <ProcFlow title="台糖 · 機械化製糖" tone="#E86A17" steps={machineFlow} note="整個流程都以機械化完成；在精密儀器控制下，10 公斤甘蔗約可產製 1 公斤砂糖。" />
+                            <ProcFlow title="民間 · 古法炒糖" tone="#8E2B1B" steps={folkFlow} note="傳統民間製糖沒有精密儀器，只能依賴經驗人工製作，只能達到粗製糖析出，無法達到精製糖的結晶。" />
+                        </div>
+                    </ProcSection>
+
+                    <ProcSection id="process-chem" num="07" title="清淨、脫色與結晶的化學" accent="#0B5D5D" subtitle="去掉雜質、讓糖晶長到合乎商業標準，是製糖最關鍵的一段。">
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <ProcCard title="石灰法 · 中和" tone="#8E2B1B">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">甘蔗原汁為酸性，先加入鹼性的石灰進行酸鹼中和，然後煮沸放入沉澱槽靜置，讓懸浮的不純物質沉澱至液體底部。</p>
+                            </ProcCard>
+                            <ProcCard title="碳酸法 · 吸附" tone="#0B5D5D">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">導入二氧化碳直到飽和，產生大量溶解度甚差的碳酸鈣粒子；這些粒子恰好吸附膠體、色素及其他非糖顆粒而沉澱，降低結晶蔗糖的顏色、提高清汁純度。</p>
+                            </ProcCard>
+                            <ProcCard title="亞硫酸法 · 脫色" tone="#B8420A">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">沉澱後的蔗汁導入二氧化硫氣體進行脫色、形成硫酸鹽，讓蔗汁的顏色變淺。</p>
+                            </ProcCard>
+                        </div>
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <ProcCard title="從蔗汁到糖晶" tone="#1A1108">
+                                <ul className="space-y-1.5 text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">
+                                    {bullet('淨化與脫色後的蔗汁送至蒸發罐，利用真空減壓加速蒸發來濃縮蔗汁。')}
+                                    {bullet('再送入結晶罐煮糖，讓水分持續蒸發、結晶析出，並抽驗檢視養晶情形。')}
+                                    {bullet('晶體與濃縮蔗汁混合後，以離心方式分蜜，將蔗糖晶體分離出來。')}
+                                    {bullet('不符商業標準者重新溶解，或充當糖種讓蔗糖析出，重複結晶與分蜜到合乎大小為止。')}
+                                    {bullet('剛收集的晶體含表面附著水、葡萄糖結合水與顆粒間游離水，必須乾燥才不會潮解。')}
+                                </ul>
+                            </ProcCard>
+                            <ProcCard title="方法決定糖色" tone="#1A1108">
+                                <div className="space-y-2 text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">
+                                    <p><span className="font-black text-[#E86A17]">碳酸法 →</span> 台糖特砂（俗稱白糖）。</p>
+                                    <p><span className="font-black text-[#8E2B1B]">石灰法 →</span> 台糖二砂（俗稱紅糖）。</p>
+                                    <p>這兩種糖還可送到精煉糖廠再純化，形成<span className="font-black text-[#1A1108]">精煉特砂、精煉細砂及二砂</span>。</p>
+                                </div>
+                                <p className="mt-3 border-t-2 border-[#1A1108]/15 pt-3 text-[11px] leading-relaxed text-[#6B5330]">在不同的製造階段，可得到顏色、顆粒大小與純度不同的糖顆粒。</p>
+                            </ProcCard>
+                        </div>
+                    </ProcSection>
+
+                    <ProcSection id="process-sugar" num="08" title="糖的種類與保存" accent="#8E2B1B" subtitle="不同的製法，留下不同的顏色、晶粒與風味。">
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <ProcCard title="特砂 · 白糖" tone="#E86A17">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">台糖特砂即學術上的「蔗精」，一般市面販售的白糖就是它。碳酸法製成，晶粒小、純度高，可以再精煉成精煉特砂與精煉細砂。</p>
+                            </ProcCard>
+                            <ProcCard title="二砂・黑糖 · 含蜜糖" tone="#8E2B1B">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">粗製黑糖俗稱紅糖，除了糖類與氨基酸，還含鈣、磷、鐵、鉀、鈉，以及維生素 B1、B2、菸鹼酸與助消化的蔗糖酵素。糖蜜與結晶未經離心分離，甘蔗汁中的雜質、氣味、營養成分都保留在糖中。</p>
+                            </ProcCard>
+                            <ProcCard title="冰糖 · 慢結晶" tone="#0B5D5D">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">古代沒有現代化設備，冰糖是當時能得到最純的結晶糖。以高濃度蔗糖溶液長時間靜置蒸發自然結晶，並用棉線懸空、下端浸入飽和糖水「養糖」讓晶體長大；晶粒更大、純度幾乎與砂糖相同，最大差異在晶粒大小。</p>
+                            </ProcCard>
+                        </div>
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <ProcCard title="民間炒糖的關鍵" tone="#1A1108">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">蔗汁在大鍋中煮沸，浮沫夾雜質由濾網撈除；持續加熱無法像台糖控制在恆溫，濃縮蔗汁會轉成糖膏而非蔗糖晶體。加熱過快會產生大量焦糖或碳化，使品質下降；以鍋鏟翻轉測試黏稠度，合乎要求立即熄火，移至炒糖架不斷翻動降溫，期間可拌入調味料，快凝固時倒入模型中切塊。</p>
+                            </ProcCard>
+                            <ProcCard title="吃得甜，也要吃得剛好" tone="#1A1108">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">蔗糖除了是居家常用的調味品，也是中醫重要的藥材，被認為有補血、益氣、促進血液循環、活血舒筋、健脾胃等功用，屬於味甘溫和的良藥。不過過量甜食容易造成肥胖，攝取過多熱量也會使正餐食慾不振，導致營養不均、影響生長發育。</p>
+                            </ProcCard>
+                        </div>
+                    </ProcSection>
+
+                    <ProcSection id="process-cycle" num="09" title="蔗渣與生質能：讓廢料回到能源" accent="#B8420A" subtitle="現今環保意識抬頭，製糖過程也盡量減少廢棄物，讓資源重複利用。">
+                        <div className="bg-[#FBF4E1] border-2 border-[#1A1108] rounded-sm shadow-[6px_6px_0_#1A1108] p-3 md:p-5">
+                            <svg viewBox="0 0 900 240" className="w-full h-auto" role="img" aria-label="蔗渣燃燒發電、蒸氣回用與廢料堆肥的循環示意圖">
+                                <g fill="#F0B429" stroke="#1A1108" strokeWidth="3">
+                                    <rect x="18" y="24" width="170" height="76" rx="8" />
+                                    <rect x="486" y="24" width="170" height="76" rx="8" />
+                                </g>
+                                <g fill="#E86A17" stroke="#1A1108" strokeWidth="3">
+                                    <rect x="252" y="24" width="170" height="76" rx="8" />
+                                    <rect x="720" y="24" width="162" height="76" rx="8" />
+                                </g>
+                                <g fill="#FBF4E1" stroke="#1A1108" strokeWidth="3">
+                                    <rect x="252" y="154" width="270" height="70" rx="8" />
+                                    <rect x="582" y="154" width="300" height="70" rx="8" />
+                                </g>
+                                <g fontFamily="'Noto Serif TC', serif" fontWeight="900" fontSize="19" fill="#1A1108" textAnchor="middle">
+                                    <text x="103" y="70">蔗渣</text><text x="337" y="70">鍋爐燃燒</text><text x="571" y="70">高壓蒸氣</text><text x="801" y="70">發電機</text>
+                                </g>
+                                <g fontFamily="'Noto Serif TC', serif" fontWeight="900" fontSize="16" fill="#1A1108" textAnchor="middle">
+                                    <text x="387" y="196">降溫蒸氣 → 清淨・濃縮・結晶</text>
+                                    <text x="732" y="196">過濾廢料 → 肥料・堆肥</text>
+                                </g>
+                                <g fill="none" stroke="#1A1108" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M192 62 H244 M234 54 L246 62 L234 70" />
+                                    <path d="M426 62 H478 M468 54 L480 62 L468 70" />
+                                    <path d="M660 62 H712 M702 54 L714 62 L702 70" />
+                                </g>
+                                <path d="M801 104 C 852 148 782 190 526 190 M542 182 L524 190 L542 198" fill="none" stroke="#B8420A" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                                <text x="690" y="142" fontFamily="'Noto Serif TC', serif" fontWeight="900" fontSize="13" fill="#B8420A">能源回用</text>
+                            </svg>
+                        </div>
+                        <div className="mt-4 grid gap-4 md:grid-cols-3">
+                            <ProcCard title="蔗渣發電" tone="#B8420A">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">台糖製糖機械首需動力，先把去年保留的部分蔗渣充當鍋爐燃料，產生大量高壓蒸氣推動發電機；搾汁產生的新鮮蔗渣繼續充當燃料，持續發電。</p>
+                            </ProcCard>
+                            <ProcCard title="蒸氣與肥料回用" tone="#0B5D5D">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">發電後已降溫的蒸氣，再做為製糖時清淨、濃縮及結晶所需要的能源；過濾及清淨階段產生的廢料充當發酵肥料，民間製糖的廢棄物則直接送至田園做堆肥。</p>
+                            </ProcCard>
+                            <ProcCard title="下一里程：生質能" tone="#8E2B1B">
+                                <p className="text-[11px] md:text-xs leading-relaxed text-[#3B2B17]">化石能源逐漸短缺，燃燒又造成空氣污染。巴西很早就發展以甘蔗汁利用酵母菌發酵生產酒精，加入汽油使用，可減少汽油消耗、增加燃燒效率；高效率的光合作用也有助提升空氣品質。</p>
+                            </ProcCard>
+                        </div>
+                    </ProcSection>
+
+                    <ProcSection id="process-transfer" num="10" title="上車，去看還在製糖的廠" accent="#0B5D5D" subtitle="從甘蔗到糖的旅程還沒結束。搭上現役列車，直接轉往「糖廠現況」裡仍在運作的廠區。">
+                        <div className="bg-[#FBF4E1] border-2 border-[#1A1108] rounded-sm shadow-[6px_6px_0_#1A1108] p-4 md:p-5">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <p className="flex items-center gap-2 text-[10px] md:text-xs font-black tracking-[0.16em] text-[#0B5D5D]">
+                                    <TrainFront className="w-4 h-4 shrink-0" />
+                                    現役製糖列車 · {runningFactories.length} 站
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={boardTrain}
+                                    className="border-2 border-[#1A1108] bg-[#0B5D5D] px-3 py-1.5 text-[11px] font-black text-[#FBF4E1] shadow-[3px_3px_0_#1A1108] transition-transform hover:-translate-y-0.5"
+                                >
+                                    直接前往糖廠現況 →
+                                </button>
+                            </div>
+
+                            <div className="mt-4 flex gap-3 overflow-x-auto scrollbar-thin pb-2">
+                                <div className="shrink-0 w-[132px] flex flex-col items-center justify-end text-center">
+                                    <svg viewBox="0 0 130 88" className="w-[124px] h-auto" role="img" aria-label="五分車火車頭手繪圖">
+                                        <path d="M92 36 V16 H106 V36" fill="#0B5D5D" stroke="#1A1108" strokeWidth="3" strokeLinejoin="round" />
+                                        <rect x="12" y="36" width="90" height="32" rx="6" fill="#0B5D5D" stroke="#1A1108" strokeWidth="3" />
+                                        <rect x="20" y="44" width="24" height="15" rx="2" fill="#F0B429" stroke="#1A1108" strokeWidth="2.5" />
+                                        <rect x="52" y="44" width="24" height="15" rx="2" fill="#F0B429" stroke="#1A1108" strokeWidth="2.5" />
+                                        <path d="M102 52 H120" stroke="#1A1108" strokeWidth="3" strokeLinecap="round" />
+                                        <path d="M12 72 H112" stroke="#1A1108" strokeWidth="3" strokeLinecap="round" />
+                                        <g fill="#FBF4E1" stroke="#1A1108" strokeWidth="3">
+                                            <circle cx="34" cy="76" r="8" /><circle cx="62" cy="76" r="8" /><circle cx="90" cy="76" r="8" />
+                                        </g>
+                                    </svg>
+                                    <p className="mt-1 text-[10px] font-black text-[#1A1108]">現役列車</p>
+                                </div>
+
+                                {runningFactories.map((factory, i) => (
+                                    <button
+                                        key={factory.id}
+                                        type="button"
+                                        onClick={() => onOpenTab && onOpenTab('data', factory.id)}
+                                        className="group flex w-[214px] shrink-0 flex-col border-2 border-[#1A1108] bg-[#F2E5C8] rounded-t-2xl shadow-[4px_4px_0_#1A1108] transition-transform hover:-translate-y-1"
+                                    >
+                                        <div className="h-3 rounded-t-2xl border-b-2 border-[#1A1108] bg-[#1A1108]" />
+                                        <div className="flex-grow px-3 pt-3 pb-2">
+                                            <div className="flex items-center justify-between gap-1">
+                                                <span className="text-[10px] font-black text-[#B8420A]">第 {i + 1} 站</span>
+                                                <span className="shrink-0 border border-[#1A1108] bg-[#FBF4E1] px-1.5 py-0.5 text-[9px] font-black text-[#1A1108]">{factory.categoryLabel}</span>
+                                            </div>
+                                            <p className="mt-2 font-display text-sm font-black leading-snug text-[#1A1108]">{factory.name}</p>
+                                            <p className="mt-1.5 text-[10px] leading-relaxed text-[#6B5330]">{factory.location}</p>
+                                            <p className="mt-2 text-[11px] font-black text-[#0B5D5D] group-hover:text-[#E86A17]">上車 → 糖廠現況</p>
+                                        </div>
+                                        <div className="flex justify-between px-5 pb-2">
+                                            <span className="h-4 w-4 rounded-full border-2 border-[#1A1108] bg-[#F0B429]" />
+                                            <span className="h-4 w-4 rounded-full border-2 border-[#1A1108] bg-[#F0B429]" />
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="track-band mt-4" />
+                            <p className="mt-3 text-[10px] md:text-[11px] leading-relaxed text-[#6B5330]">點選任一車廂，即切換至「糖廠現況」並帶入該廠資料；四站皆為目前仍運作的糖廠／工場。</p>
+                        </div>
+                    </ProcSection>
+
+                </div>
+            );
+        };
 
         const RailTab = () => {
             const hostRef = React.useRef(null);
@@ -2887,13 +3350,14 @@ const RAIL_NODES = [
                 window.scrollTo({ top: 0, behavior: 'auto' });
             };
 
-            const openDataTab = () => {
+            // factoryId：由「製程」的現役列車轉乘時，直接帶入該廠
+            const openDataTab = (factoryId) => {
                 if (activeTab === 'data') return;
-                const prevId = selectedFactory?.id;
+                const prevId = factoryId || selectedFactory?.id;
                 setSelectedFactory(legacyFactories.find((f) => f.id === prevId) || legacyFactories[0]);
                 setMapMode('factory');
                 setActiveTab('data');
-                if (activeTab === 'rail' || activeTab === 'timeline') backToTop();
+                if (activeTab === 'rail' || activeTab === 'timeline' || activeTab === 'process') backToTop();
             };
 
             const openGoogleTab = () => {
@@ -2917,12 +3381,19 @@ const RAIL_NODES = [
                 backToTop();
             };
 
+            const openProcessTab = () => {
+                if (activeTab === 'process') return;
+                setActiveTab('process');
+                backToTop();
+            };
+
             // 讓其他分頁（例如長廊出口）也能指定跳去哪裡
-            const openTabById = (id) => {
+            const openTabById = (id, factoryId) => {
                 if (id === 'gmap') openGoogleTab();
                 else if (id === 'rail') openRailTab();
                 else if (id === 'timeline') openTimelineTab();
-                else openDataTab();
+                else if (id === 'process') openProcessTab();
+                else openDataTab(factoryId);
             };
 
             // 在地資訊：跟著上方分類（糖廠位置／美食／景點／交通）換內容
@@ -2969,6 +3440,17 @@ const RAIL_NODES = [
                                 </button>
                                 <button
                                     type="button"
+                                    aria-pressed={activeTab === 'process'}
+                                    aria-label="製糖的過程"
+                                    onClick={openProcessTab}
+                                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-2 md:px-4 py-2 rounded-md text-xs md:text-sm font-black transition-all ${activeTab === 'process' ? 'bg-[#B8420A] text-[#FBF4E1] shadow-[3px_3px_0_#000000]' : 'text-[#E9D9B8] hover:bg-[#3B2B17]'}`}
+                                >
+                                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" /><circle cx="12" cy="12" r="3.5" /></svg>
+                                    <span className="hidden lg:inline">製糖的過程</span>
+                                    <span className="lg:hidden">製程</span>
+                                </button>
+                                <button
+                                    type="button"
                                     aria-pressed={activeTab === 'data'}
                                     aria-label="糖廠現況"
                                     onClick={openDataTab}
@@ -3005,11 +3487,13 @@ const RAIL_NODES = [
                     </header>
 
                     {/* 主要內容區 */}
-                    <main className={activeTab === 'rail' || activeTab === 'timeline' ? 'w-full flex-grow' : 'max-w-6xl w-full mx-auto p-4 md:p-6 flex-grow flex flex-col'}>
+                    <main className={activeTab === 'rail' || activeTab === 'timeline' || activeTab === 'process' ? 'w-full flex-grow' : 'max-w-6xl w-full mx-auto p-4 md:p-6 flex-grow flex flex-col'}>
                         {activeTab === 'rail' ? (
                             <RailTab />
                         ) : activeTab === 'timeline' ? (
                             <TimelineTab onOpenTab={openTabById} />
+                        ) : activeTab === 'process' ? (
+                            <ProcessTab onOpenTab={openTabById} factories={legacyFactories} />
                         ) : (
                         <>
                         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
